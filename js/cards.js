@@ -46,7 +46,7 @@
       + '<span class="health-text" style="color:' + healthColors[health] + '">' + healthLabels[health] + '</span>'
       + '<span class="health-time">' + timeStr + '</span>'
       + '</span>'
-      + '<button class="btn-test" data-index="' + index + '">测试</button>'
+      + '<button class="btn-use" data-index="' + index + '">使用</button>'
       + '</div>'
       + replacedHtml
       + '</div>';

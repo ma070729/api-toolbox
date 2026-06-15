@@ -61,11 +61,18 @@
 
   function initCards() {
     document.getElementById('apiGrid').addEventListener('click', function (e) {
-      var btn = e.target.closest('.btn-test');
-      if (!btn) return;
-      var index = parseInt(btn.getAttribute('data-index'));
-      var api = window.ApiData.state.apis[index];
-      if (api) window.Modal.open(api);
+      var useBtn = e.target.closest('.btn-use');
+      if (useBtn) {
+        var index = parseInt(useBtn.getAttribute('data-index'));
+        var api = window.ApiData.state.apis[index];
+        if (!api) return;
+        // 有 use_url 直接新窗口打开，没参数就走弹窗自动请求
+        if (api.use_url) {
+          window.open(api.use_url, '_blank');
+        } else {
+          window.Modal.open(api);
+        }
+      }
     });
   }
 

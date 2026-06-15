@@ -177,6 +177,13 @@ body {
   transition: background .15s, color .15s; white-space: nowrap;
 }
 .btn-test:hover { background: var(--primary); color: #fff; }
+.btn-use {
+  padding: 4px 12px; border: none; border-radius: 14px;
+  background: var(--primary); color: #fff;
+  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  transition: filter .15s; white-space: nowrap;
+}
+.btn-use:hover { filter: brightness(1.15); }
 .card-replaced {
   margin-top: 8px; padding: 4px 8px; background: #fffdf0;
   border-radius: 4px; font-size: 0.65rem; color: #f39c12;
@@ -215,7 +222,19 @@ body {
   gap: 12px;
 }
 .modal-header h3 { margin: 0; font-size: 1rem; }
-.modal-source { font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px; }
+.modal-source .tag-kuleu,
+.modal-source .tag-free-api {
+  font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+}
+.modal-method { font-size: 0.7rem; color: var(--text-muted); margin-left: 4px; }
+.use-redirect { text-align: center; padding: 20px 0; }
+.use-redirect p { font-size: 0.9rem; color: var(--text-muted); margin: 0 0 12px; }
+.btn-use-direct {
+  display: inline-block; padding: 10px 24px;
+  background: var(--primary); color: #fff; text-decoration: none;
+  border-radius: 10px; font-weight: 700; font-size: 0.9rem;
+}
+.btn-use-direct:hover { filter: brightness(1.1); }
 .modal-close {
   border: none; background: var(--border); color: var(--text);
   width: 32px; height: 32px; border-radius: 8px;
