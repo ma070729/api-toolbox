@@ -1,6 +1,12 @@
-// detail.js — API 工具页面（智能渲染：视频/图片/音频/文本）
+// detail.js — API 工具页面（智能渲染 + 换一个/查看源码）
 (function () {
   'use strict';
+
+  var currentApi = null;
+  var currentProxyUrl = '';
+  var lastMedia = null;
+  var lastRawText = '';
+  var showingRaw = false;
 
   function escapeHtml(str) {
     var div = document.createElement('div');
@@ -21,13 +27,10 @@
     return null;
   }
 
-  // 从响应 JSON 中提取媒体 URL
   function extractMediaUrl(data) {
     if (typeof data === 'string') {
-      // 尝试解析 JSON 字符串
       try { data = JSON.parse(data); } catch (e) { return null; }
     }
-    // 递归搜索对象中的 URL
     function search(obj, depth) {
       if (!obj || depth > 10) return null;
       if (typeof obj === 'string') {
@@ -38,24 +41,15 @@
         return null;
       }
       if (Array.isArray(obj)) {
-        for (var i = 0; i < obj.length; i++) {
-          var r = search(obj[i], depth + 1);
-          if (r) return r;
-        }
+        for (var i = 0; i < obj.length; i++) { var r = search(obj[i], depth + 1); if (r) return r; }
       } else if (typeof obj === 'object') {
-        // 优先检查常见字段名
         var keys = ['url', 'src', 'video', 'mp4', 'mp4_url', 'play_url', 'cover', 'image', 'img', 'thumb', 'data'];
         for (var j = 0; j < keys.length; j++) {
-          if (obj[keys[j]]) {
-            var r = search(obj[keys[j]], depth + 1);
-            if (r) return r;
-          }
+          if (obj[keys[j]]) { var r = search(obj[keys[j]], depth + 1); if (r) return r; }
         }
-        // 再遍历所有字段
         for (var k in obj) {
-          if (keys.indexOf(k) >= 0) continue; // 已检查过
-          var r = search(obj[k], depth + 1);
-          if (r) return r;
+          if (keys.indexOf(k) >= 0) continue;
+          var r = search(obj[k], depth + 1); if (r) return r;
         }
       }
       return null;
@@ -63,93 +57,105 @@
     return search(data, 0);
   }
 
-  // 智能渲染 API 响应
-  function renderResponse(container, data, rawText) {
-    // 尝试解析 JSON
-    var parsed;
-    try { parsed = JSON.parse(rawText); } catch (e) { parsed = null; }
-    var obj = parsed || data;
+  function formatJson(text) {
+    try { return JSON.stringify(JSON.parse(text), null, 2); } catch (e) { return text; }
+  }
 
-    // 尝试提取媒体
-    var media = extractMediaUrl(obj);
+  function showMedia() {
+    showingRaw = false;
+    var container = document.getElementById('detailResult');
+    var bar = document.getElementById('actionBar');
 
-    if (media && media.type === 'video') {
-      container.innerHTML =
-        '<div class="media-player">'
-        + '<video controls autoplay playsinline class="media-video" src="' + escapeHtml(media.url) + '">'
-        + '您的浏览器不支持视频播放</video>'
-        + '<p class="media-url"><a href="' + escapeHtml(media.url) + '" target="_blank" rel="noopener">视频地址</a></p>'
-        + '</div>';
+    var html = '<div class="media-player">';
+    if (lastMedia.type === 'video') {
+      html += '<video controls autoplay playsinline class="media-video" src="' + escapeHtml(lastMedia.url) + '"></video>';
+    } else if (lastMedia.type === 'image') {
+      html += '<img class="media-image" src="' + escapeHtml(lastMedia.url) + '" alt="结果">';
+    } else if (lastMedia.type === 'audio') {
+      html += '<audio controls autoplay class="media-audio" src="' + escapeHtml(lastMedia.url) + '"></audio>';
+    }
+    html += '<p class="media-url"><a href="' + escapeHtml(lastMedia.url) + '" target="_blank" rel="noopener">源地址</a></p>';
+    html += '</div>';
+    container.innerHTML = html;
+
+    bar.innerHTML =
+      '<button class="btn-action btn-action--primary" onclick="window.Detail.refresh()">换一个</button>'
+      + '<button class="btn-action" onclick="window.Detail.showRaw()">查看源码</button>';
+  }
+
+  function showRaw() {
+    showingRaw = true;
+    var container = document.getElementById('detailResult');
+    var bar = document.getElementById('actionBar');
+
+    container.innerHTML = '<pre class="response-body">' + escapeHtml(formatJson(lastRawText)) + '</pre>';
+
+    var buttons = '<button class="btn-action" onclick="window.Detail.refresh()">刷新</button>';
+    if (lastMedia) {
+      buttons = '<button class="btn-action btn-action--primary" onclick="window.Detail.showMedia()">返回媒体</button>'
+        + '<button class="btn-action" onclick="window.Detail.refresh()">换一个</button>';
+    }
+    bar.innerHTML = buttons;
+  }
+
+  function showLoading() {
+    document.getElementById('detailResult').innerHTML =
+      '<div class="detail-loading"><div class="loading-spinner"></div><p>加载中...</p></div>';
+    document.getElementById('actionBar').innerHTML = '';
+  }
+
+  function showError(msg) {
+    document.getElementById('detailResult').innerHTML = '<div class="detail-error">' + escapeHtml(msg) + '</div>';
+    document.getElementById('actionBar').innerHTML =
+      '<button class="btn-action btn-action--primary" onclick="window.Detail.refresh()">重试</button>';
+  }
+
+  function fetchAndRender() {
+    if (!currentProxyUrl) {
+      showError('无法构造请求 URL');
       return;
     }
+    showLoading();
 
-    if (media && media.type === 'image') {
-      container.innerHTML =
-        '<div class="media-player">'
-        + '<img class="media-image" src="' + escapeHtml(media.url) + '" alt="API 返回图片">'
-        + '<p class="media-url"><a href="' + escapeHtml(media.url) + '" target="_blank" rel="noopener">原图地址</a></p>'
-        + '</div>';
-      return;
-    }
+    fetch(currentProxyUrl)
+      .then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error(t); });
+        return r.text();
+      })
+      .then(function (body) {
+        lastRawText = body;
+        var parsed = null;
+        try { parsed = JSON.parse(body); } catch (e) {}
+        lastMedia = extractMediaUrl(parsed || body);
+        showingRaw = false;
 
-    if (media && media.type === 'audio') {
-      container.innerHTML =
-        '<div class="media-player">'
-        + '<audio controls autoplay class="media-audio" src="' + escapeHtml(media.url) + '"></audio>'
-        + '<p class="media-url"><a href="' + escapeHtml(media.url) + '" target="_blank" rel="noopener">音频地址</a></p>'
-        + '</div>';
-      return;
-    }
+        if (lastMedia) {
+          showMedia();
+        } else {
+          showRaw();
+        }
 
-    // 文本/数据：格式化显示
-    var formatted;
-    try {
-      formatted = JSON.stringify(parsed || rawText, null, 2);
-    } catch (e) {
-      formatted = rawText;
-    }
-    container.innerHTML = '<pre class="response-body">' + escapeHtml(formatted) + '</pre>';
+        var idx = window.ApiData.state.apis.indexOf(currentApi);
+        if (idx >= 0) window.ApiData.updateHealth(idx, 'ok', null);
+      })
+      .catch(function (err) {
+        showError('请求失败: ' + err.message);
+      });
   }
 
   function renderKuleu(detailView, api) {
-    var targetUrl = buildUrl(api);
-    var proxyUrl = targetUrl ? '/api/proxy?url=' + encodeURIComponent(targetUrl) : null;
+    currentApi = api;
+    currentProxyUrl = '/api/proxy?url=' + encodeURIComponent(buildUrl(api));
 
     detailView.innerHTML =
       '<div class="detail-info">'
       + '<h2>' + escapeHtml(api.title) + '</h2>'
       + '<p class="detail-desc">' + escapeHtml(api.desc || '') + '</p>'
       + '</div>'
-      + '<div id="detailResult" class="detail-result-wrap">'
-      + '<div class="detail-loading">'
-      + '<div class="loading-spinner"></div>'
-      + '<p>加载中...</p>'
-      + '</div>'
-      + '</div>';
+      + '<div id="actionBar" class="detail-actions"></div>'
+      + '<div id="detailResult" class="detail-result-wrap"></div>';
 
-    if (!proxyUrl) {
-      document.getElementById('detailResult').innerHTML =
-        '<div class="detail-error">无法构造请求 URL</div>';
-      return;
-    }
-
-    fetch(proxyUrl)
-      .then(function (r) {
-        if (!r.ok) return r.text().then(function (t) { throw new Error(t); });
-        return r.text();
-      })
-      .then(function (body) {
-        var container = document.getElementById('detailResult');
-        renderResponse(container, null, body);
-        var idx = window.ApiData.state.apis.indexOf(api);
-        if (idx >= 0) window.ApiData.updateHealth(idx, 'ok', null);
-      })
-      .catch(function (err) {
-        var container = document.getElementById('detailResult');
-        if (container) {
-          container.innerHTML = '<div class="detail-error">请求失败: ' + escapeHtml(err.message) + '</div>';
-        }
-      });
+    fetchAndRender();
   }
 
   function renderFreeApi(detailView, api) {
@@ -169,8 +175,6 @@
   }
 
   function render(api) {
-    var detailView = document.getElementById('detailView');
-
     var header = document.getElementById('detailHeader');
     header.querySelector('.detail-title').textContent = api.title;
     header.querySelector('.detail-source').innerHTML =
@@ -179,11 +183,16 @@
       + ' <span class="detail-method">' + (api.method || 'GET') + '</span>';
 
     if (api.source === 'kuleu') {
-      renderKuleu(detailView, api);
+      renderKuleu(document.getElementById('detailView'), api);
     } else {
-      renderFreeApi(detailView, api);
+      renderFreeApi(document.getElementById('detailView'), api);
     }
   }
 
-  window.Detail = { render: render };
+  window.Detail = {
+    render: render,
+    refresh: fetchAndRender,
+    showRaw: showRaw,
+    showMedia: showMedia
+  };
 })();

@@ -333,7 +333,22 @@ body {
   width: 100%; height: 70vh; border: none; display: block;
 }
 
-.detail-result-wrap { margin-top: 16px; min-height: 200px; }
+.detail-result-wrap { min-height: 200px; }
+.detail-actions {
+  display: flex; justify-content: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.btn-action {
+  padding: 8px 22px; border: 1px solid var(--border); border-radius: 20px;
+  background: var(--bg-card); color: var(--text);
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.btn-action:hover { border-color: var(--primary); color: var(--primary); }
+.btn-action--primary {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+.btn-action--primary:hover { filter: brightness(1.1); color: #fff; }
 .detail-loading { text-align: center; padding: 60px 20px; }
 .detail-loading p { color: var(--text-muted); font-size: 0.85rem; margin-top: 12px; }
 .loading-spinner {
