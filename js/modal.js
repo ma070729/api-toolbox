@@ -26,7 +26,11 @@
           + '</div>';
       });
     } else {
-      paramsHtml = '<div class="param-empty">此接口暂未收录参数信息，可在下方直接输入 URL 参数</div>'
+      paramsHtml = '<div class="param-doc-hint">'
+        + '<p>此接口暂未收录参数信息，请查看文档了解参数后输入</p>'
+        + (api.doc_url ? '<a class="param-doc-link" href="' + escapeHtml(api.doc_url) + '" target="_blank" rel="noopener">📖 查看接口文档</a>' : '')
+        + (api.use_url ? '<p class="param-use-url">在线调试: ' + escapeHtml(api.use_url) + '</p>' : '')
+        + '</div>'
         + '<div class="param-row">'
         + '<input type="text" id="paramRaw" class="param-input" placeholder="例如: ?key=value&city=北京">'
         + '</div>';
