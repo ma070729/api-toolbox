@@ -81,14 +81,22 @@
     var respArea = document.getElementById('modalResponse');
     respArea.innerHTML = '<div class="response-loading">请求中...</div>';
 
-    var url = buildUrl(currentApi);
-    if (!url) {
+    var targetUrl = buildUrl(currentApi);
+    if (!targetUrl) {
       respArea.innerHTML = '<div class="response-error">无法构造请求 URL，请检查接口配置</div>';
       return;
     }
 
-    fetch(url, { method: currentApi.method || 'GET' })
+    // 通过同源代理转发，绕过 CORS 限制
+    var proxyUrl = '/api/proxy?url=' + encodeURIComponent(targetUrl);
+
+    fetch(proxyUrl)
       .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (errData) {
+            throw new Error(errData.error || 'HTTP ' + r.status);
+          });
+        }
         var ct = r.headers.get('content-type') || '';
         if (ct.indexOf('application/json') !== -1) {
           return r.json().then(function (data) { return JSON.stringify(data, null, 2); });

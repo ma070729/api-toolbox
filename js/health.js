@@ -27,12 +27,15 @@
         resolve({ index: index, health: api.health || 'unknown', replacedBy: null });
         return;
       }
+
+      var proxyUrl = '/api/proxy?url=' + encodeURIComponent(url);
       var timeout = new Promise(function (_, reject) {
         setTimeout(function () { reject(new Error('timeout')); }, 8000);
       });
-      var fetchPromise = fetch(url, { method: 'HEAD', mode: 'no-cors' }).then(function () {
-        return 'ok';
+      var fetchPromise = fetch(proxyUrl).then(function (r) {
+        return r.ok ? 'ok' : 'fail';
       });
+
       Promise.race([fetchPromise, timeout])
         .then(function () {
           resolve({ index: index, health: 'ok', replacedBy: null });
