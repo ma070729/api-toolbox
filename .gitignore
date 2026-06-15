@@ -2,3 +2,8 @@ generate_similarity.py
 __pycache__/
 .DS_Store
 .wrangler/
+
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
