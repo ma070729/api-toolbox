@@ -1,6 +1,41 @@
-// app.js — 应用入口
+// app.js — 应用入口 + hash 路由
 (function () {
   'use strict';
+
+  var mainEls = {
+    hero: document.querySelector('.hero'),
+    notify: document.getElementById('notifyArea'),
+    apiSection: document.querySelector('.api-section'),
+    footer: document.querySelector('.footer')
+  };
+  var detailPage = document.getElementById('detailPage');
+
+  function showMain() {
+    for (var k in mainEls) { mainEls[k].hidden = false; }
+    detailPage.hidden = true;
+  }
+
+  function showDetail(api) {
+    for (var k in mainEls) { mainEls[k].hidden = true; }
+    detailPage.hidden = false;
+    window.Detail.render(api);
+    window.scrollTo(0, 0);
+  }
+
+  function route() {
+    var hash = location.hash;
+    var match = hash.match(/^#\/api\/(\d+)$/);
+    if (match) {
+      var index = parseInt(match[1]);
+      var api = window.ApiData.state.apis[index];
+      if (api) {
+        showDetail(api);
+        return;
+      }
+    }
+    showMain();
+    refresh();
+  }
 
   function renderCategories() {
     var cats = window.ApiData.getCategories();
@@ -64,14 +99,7 @@
       var useBtn = e.target.closest('.btn-use');
       if (useBtn) {
         var index = parseInt(useBtn.getAttribute('data-index'));
-        var api = window.ApiData.state.apis[index];
-        if (!api) return;
-        // 有 use_url 直接新窗口打开，没参数就走弹窗自动请求
-        if (api.use_url) {
-          window.open(api.use_url, '_blank');
-        } else {
-          window.Modal.open(api);
-        }
+        location.hash = '#/api/' + index;
       }
     });
   }
@@ -88,8 +116,13 @@
       initSearch();
       initSort();
       initCards();
-      refresh();
-      if (window.Health.shouldCheck()) {
+
+      // 路由
+      route();
+      window.addEventListener('hashchange', route);
+
+      // 健康检测（仅主页）
+      if (!location.hash.match(/^#\/api\//) && window.Health.shouldCheck()) {
         window.Health.runCheck(window.ApiData.state.apis).then(function (events) {
           if (events) {
             window.Notify.show(events);
@@ -103,7 +136,7 @@
     });
   }
 
-  window.App = { refresh: refresh, init: init };
+  window.App = { refresh: refresh, init: init, route: route };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

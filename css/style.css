@@ -297,6 +297,48 @@ body {
 }
 .btn-aux:hover { background: var(--border); color: var(--text); }
 
+/* === API 工具页面 === */
+.detail-header {
+  max-width: 1200px; margin: 0 auto; padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-back {
+  color: var(--primary); text-decoration: none; font-size: 0.85rem; font-weight: 600;
+  white-space: nowrap;
+}
+.detail-back:hover { text-decoration: underline; }
+.detail-header .detail-title {
+  flex: 1; font-weight: 700; font-size: 0.95rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.detail-method { font-size: 0.7rem; color: var(--text-muted); }
+.detail-view { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+.detail-info {
+  text-align: center; padding: 24px 20px 16px;
+}
+.detail-info h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.detail-desc { margin: 0 0 12px; color: var(--text-muted); font-size: 0.85rem; }
+.detail-cat {
+  display: inline-block; padding: 3px 12px; border-radius: 14px;
+  font-size: 0.72rem; background: var(--tag-bg); color: var(--tag-color);
+}
+
+.detail-iframe-wrap {
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.detail-iframe {
+  width: 100%; height: 70vh; border: none; display: block;
+}
+
+.detail-result { margin-top: 16px; }
+.detail-result-header {
+  font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--text-muted);
+}
+.detail-response { max-height: 60vh; }
+
 .footer {
   text-align: center; padding: 24px 20px;
   border-top: 1px solid var(--border);
